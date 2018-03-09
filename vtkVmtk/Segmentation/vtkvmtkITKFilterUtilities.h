@@ -10,15 +10,15 @@ Version:   $Revision: 1.2 $
   See LICENCE file for details.
 
   Portions of this code are covered under the VTK copyright.
-  See VTKCopyright.txt or http://www.kitware.com/VTKCopyright.htm 
+  See VTKCopyright.txt or http://www.kitware.com/VTKCopyright.htm
   for details.
 
   Portions of this code are covered under the ITK copyright.
   See ITKCopyright.txt or http://www.itk.org/HTML/Copyright.htm
   for details.
 
-     This software is distributed WITHOUT ANY WARRANTY; without even 
-     the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR 
+     This software is distributed WITHOUT ANY WARRANTY; without even
+     the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
      PURPOSE.  See the above copyright notices for more information.
 
 =========================================================================*/
@@ -37,6 +37,7 @@ Version:   $Revision: 1.2 $
 #include "vtkImageData.h"
 #include "itkImage.h"
 #include "itkCommand.h"
+#include "itkImageToVTKImageFilter.h"
 
 class VTK_VMTK_SEGMENTATION_EXPORT vtkvmtkITKFilterUtilities
 {
@@ -126,57 +127,13 @@ public:
   template<typename TImage>
   static void
   ITKToVTKImage(typename TImage::Pointer input, vtkImageData* output) {
+	typedef TImage ImageType;
+	typedef itk::ImageToVTKImageFilter<TImage> FilterType;
 
-    typedef TImage ImageType;
-    typedef typename ImageType::Pointer ImagePointer;
-    typedef typename ImageType::PixelType PixelType;
-    typedef typename ImageType::PointType PointType;
-    typedef typename ImageType::SpacingType SpacingType;
-    typedef typename ImageType::RegionType RegionType;
-    typedef typename ImageType::IndexType IndexType;
-    typedef typename ImageType::SizeType SizeType;
-
-    PointType origin = input->GetOrigin();
-    SpacingType spacing = input->GetSpacing();
-
-    double outputOrigin[3];
-    double outputSpacing[3];
-    
-    outputOrigin[0] = origin[0];
-    outputOrigin[1] = origin[1];
-    outputOrigin[2] = origin[2];
-
-    outputSpacing[0] = spacing[0];
-    outputSpacing[1] = spacing[1];
-    outputSpacing[2] = spacing[2];
-
-    output->SetOrigin(outputOrigin);
-    output->SetSpacing(outputSpacing);
-
-    RegionType region = input->GetBufferedRegion();
-    IndexType index = region.GetIndex();
-    SizeType size = region.GetSize();
-
-    //int dimensions[3];
-    //dimensions[0] = size[0];
-    //dimensions[1] = size[1];
-    //dimensions[2] = size[2];
-    int extent[6];
-    extent[0] = index[0];
-    extent[1] = index[0] + size[0] - 1;
-    extent[2] = index[1];
-    extent[3] = index[1] + size[1] - 1;
-    extent[4] = index[2];
-    extent[5] = index[2] + size[2] - 1;
-
-    int components = input->GetNumberOfComponentsPerPixel();
-    int dataType = output->GetScalarType(); // WARNING: we delegate setting type to caller
-
-    //output->SetDimensions(dimensions);
-    output->SetExtent(extent);
-    output->AllocateScalars(dataType,components);
-
-    memcpy(static_cast<PixelType*>(output->GetScalarPointer()),input->GetBufferPointer(),input->GetBufferedRegion().GetNumberOfPixels()*sizeof(PixelType));
+	FilterType::Pointer filter = FilterType::New();
+	filter->SetInput(input);
+	filter->Update();
+	output->DeepCopy(filter->GetOutput());
   }
 
   static void
